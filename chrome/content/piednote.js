@@ -2,7 +2,7 @@ var pnStartDelimiter = '[';
 var pnEndDelimiter = ']';
 var pnLiRegexpToken = '\\w+';
 var pnLiArray = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15'];
-var pnUrlPattern = /http:\/\/[^ ]+[\w\/]/;
+var pnUrlPattern = /http:\/\/[^ \n]+[\w\/]/;
 var pnNumberPattern = new RegExp('\\' + pnStartDelimiter + '(' + pnLiRegexpToken + ')' + '\\' + pnEndDelimiter);
 var pnFootnotePattern = new RegExp('^\\s*' + pnNumberPattern.source + '\\s*' + '(' + pnUrlPattern.source + ')' + '\\s*$');
 var pnSpecialKeys = ['footnoteLocation', 'parentNode'];
@@ -35,8 +35,9 @@ var piednote = {
         var urlDict = {};
         editor.beginTransaction()
         urlDict = piednote.findExistingFootnotes(editor, nodes, urlDict);
+        alert(dictDump(urlDict));
         urlDict = piednote.parseText(editor, nodes, urlDict);
-        //alert(dictDump(urlDict));
+        alert(dictDump(urlDict));
         piednote.dumpFootnotes(editor, urlDict, editorType);
         editor.endTransaction();
     },
@@ -58,7 +59,7 @@ var piednote = {
             }
             else {
                 try {
-                    //TODO: Make a dictionary and dump all footnotes at the end
+                    //alert('[' + node.nodeValue.toString() + ']');
                     footnoteMatch = pnFootnotePattern.exec(node.nodeValue.toString());
                     var j = i;
                     while(footnoteMatch && j < nodes.length) {
@@ -156,11 +157,6 @@ var piednote = {
             sorted.push([key, urlDict[key]]);
             sorted.sort(function (a, b) {return b[1] - a[1]});
         }
-        if (footnoteLocation == nodes.length) {
-            //We're at the end, let's insert a line
-            editor.endOfDocument();
-            editor.insertLineBreak();
-        }
         for (var i = 0; i < sorted.length; i++) {
             var key = sorted[i][0];
             var value = sorted[i][1];
@@ -176,8 +172,12 @@ var piednote = {
                     //alert('about to insert:' + tmpFootno + ' ' + key + ' at ' + footnoteLocation);
                     //TODO: Add a BR node here instead of just a newline?
                     var node = editor.document.createTextNode('');
-                    node.nodeValue = tmpFootno + ' ' + key + '\n';                   
+                    node.nodeValue = tmpFootno + ' ' + key;                   
                     editor.insertNode(node, parentNode, footnoteLocation);
+                    node = editor.document.createElement('br');
+                    editor.insertNode(node, parentNode, footnoteLocation);
+                    // This line break is pretty important. Without it, the footnote nodes seem to be inserted / merged into the same node.
+                    //editor.insertLineBreak();
                     //editor.insertNode(node, editor.rootElement, editor.rootElement.childNodes.length);
                 } /*
                 else 
