@@ -1,0 +1,2 @@
+content     piednote    chrome/content/
+overlay     chrome://messenger/content/messengercompose/messengercompose.xul chrome://piednote/content/piednote.xul
