@@ -26,8 +26,8 @@
 
     <!-- Front End MetaData -->
     <em:name>Piednote</em:name>
-    <em:description></em:description>
-    <em:creator>urdnalexa</em:creator>
+    <em:description>An addon that converts existing links into footnotes.</em:description>
+    <em:creator>Alex Panait</em:creator>
     <em:iconURL/>
     <em:icon64URL/>
     

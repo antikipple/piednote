@@ -5,7 +5,6 @@ var pnLiArray = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', 
 var pnUrlPattern = /http:\/\/[^ \n]+[\w\/]/;
 var pnNumberPattern = new RegExp('\\' + pnStartDelimiter + '(' + pnLiRegexpToken + ')' + '\\' + pnEndDelimiter);
 var pnFootnotePattern = new RegExp('^\\s*' + pnNumberPattern.source + '\\s*' + '(' + pnUrlPattern.source + ')' + '\\s*$');
-var pnSpecialKeys = ['footnoteLocation', 'parentNode'];
 
 function dictSize(obj) {
     var size = 0, key;
@@ -30,14 +29,11 @@ var piednote = {
         var editorType = GetCurrentEditorType();
         var nodes = editor.rootElement.childNodes;
 
-        //alert(pnNumberPattern + ':' + pnFootnotePattern);
         var i = 0;
         var urlDict = {};
         editor.beginTransaction()
         urlDict = piednote.findExistingFootnotes(editor, nodes, urlDict);
-        alert(dictDump(urlDict));
         urlDict = piednote.parseText(editor, nodes, urlDict);
-        alert(dictDump(urlDict));
         piednote.dumpFootnotes(editor, urlDict, editorType);
         editor.endTransaction();
     },
@@ -50,25 +46,25 @@ var piednote = {
         var node;
         var footnoteMatch;
         var nodesToDelete = [];
-    
+        var piednoteParent;
+        var nodes;
+        piednoteParent = editor.document.getElementById('piednoteParent');
+        if (!piednoteParent) {
+            return urlDict;
+        }
+        nodes = piednoteParent.childNodes;
         for (var i = 0; i < nodes.length; i++) {
             node = nodes[i];
-            
             if (node.hasChildNodes()) {
                 urlDict = piednote.findExistingFootnotes(editor, node.childNodes, urlDict);
             }
             else {
                 try {
-                    //alert('[' + node.nodeValue.toString() + ']');
                     footnoteMatch = pnFootnotePattern.exec(node.nodeValue.toString());
                     var j = i;
                     while(footnoteMatch && j < nodes.length) {
                         //alert(node.nodeName + ':' + node.nodeValue.toString() + ':' + footnoteMatch);
                         //http://saladwithsteve.com/2008/02/javascript-undefined-vs-null.html
-                        if (!urlDict['parentNode']) {
-                            urlDict['footnoteLocation'] = i;
-                            urlDict['parentNode'] = node.parentNode;
-                        }
                         urlDict[footnoteMatch[2]] = footnoteMatch[1];
                         var tmpSibling = node.nextSibling;
                         nodesToDelete.push(node);
@@ -89,10 +85,6 @@ var piednote = {
         for (var i = 0; i < n; i++) {
             editor.deleteNode(nodesToDelete[i]);
         }
-        if (!urlDict['parentNode']) {
-            urlDict['footnoteLocation'] = nodes.length;
-            urlDict['parentNode'] = editor.rootElement;
-        }
         return urlDict;
     },
     
@@ -106,7 +98,7 @@ var piednote = {
     //Daca nu exista footnotes sa le faca unde e cursorul sau la sfarsit?
     parseText : function(editor, nodes, urlDict) {
         var node;
-        var numFootnotes = dictSize(urlDict) - pnSpecialKeys.length; //FIX: A more elegant way to avoid the predefined nodes
+        var numFootnotes = dictSize(urlDict); //FIX: A more elegant way to avoid the predefined nodes
         var urlMatch;
         var n = nodes.length;
     
@@ -123,11 +115,9 @@ var piednote = {
                         //alert(node.nodeName + ':' + node.nodeValue.toString() + ':' + urlMatch);
                         var tmpLi;
                         if (urlMatch[0] in urlDict) {
-                            //alert('Found key: ' + urlMatch[0] + ' > ' + urlDict[urlMatch[0]]);
                             tmpLi = urlDict[urlMatch[0]];
                         }
                         else {
-                            //alert('Key not found: ' + urlMatch[0]);
                             tmpLi = pnLiArray[numFootnotes++];
                             urlDict[urlMatch[0]] = tmpLi;
                         }
@@ -144,18 +134,27 @@ var piednote = {
         }
         return urlDict;
     },
-    
+      
     //TODO: Handle HTML editor
     dumpFootnotes : function(editor, urlDict, editorType) {
         var parentNode = urlDict.parentNode;
         var footnoteLocation = urlDict.footnoteLocation;
         var nodes = editor.rootElement.childNodes;
+        var piednoteParent;
         //http://wolfram.kriesing.de/blog/index.php/2008/javascript-sort-object-by-a-value
-        //Sort the list of links inverted so they will show up correctly when inserted
         var sorted = [];
         for (var key in urlDict) {
             sorted.push([key, urlDict[key]]);
-            sorted.sort(function (a, b) {return b[1] - a[1]});
+            sorted.sort(function (a, b) {return a[1] - b[1]});
+        }
+        
+        if (sorted.length > 0) {
+            piednoteParent = editor.document.getElementById('piednoteParent');
+            if (!piednoteParent) {
+                piednoteParent = editor.document.createElement('span');
+                piednoteParent.id = 'piednoteParent';
+                editor.insertNode(piednoteParent, editor.rootElement, nodes.length - 1);
+            }
         }
         for (var i = 0; i < sorted.length; i++) {
             var key = sorted[i][0];
@@ -163,22 +162,13 @@ var piednote = {
             try {
                 if( editorType == 'textmail' || editorType == 'text' )
                 {  
-                    if (pnSpecialKeys.indexOf(key) != -1) {
-                        continue;
-                    }
-                    //var node = urlDict['footnoteNode'].cloneNode(false);
-                    //var node = editor.createNode('#text', parentNode, footnoteLocation);
                     var tmpFootno = pnStartDelimiter + value + pnEndDelimiter;
-                    //alert('about to insert:' + tmpFootno + ' ' + key + ' at ' + footnoteLocation);
-                    //TODO: Add a BR node here instead of just a newline?
+                    //alert('about to insert:' + tmpFootno + ' ' + key);
                     var node = editor.document.createTextNode('');
                     node.nodeValue = tmpFootno + ' ' + key;                   
-                    editor.insertNode(node, parentNode, footnoteLocation);
+                    piednoteParent.appendChild(node);
                     node = editor.document.createElement('br');
-                    editor.insertNode(node, parentNode, footnoteLocation);
-                    // This line break is pretty important. Without it, the footnote nodes seem to be inserted / merged into the same node.
-                    //editor.insertLineBreak();
-                    //editor.insertNode(node, editor.rootElement, editor.rootElement.childNodes.length);
+                    piednoteParent.appendChild(node);
                 } /*
                 else 
                     { 
