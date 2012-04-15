@@ -2,7 +2,7 @@ var pnStartDelimiter = '[';
 var pnEndDelimiter = ']';
 var pnLiRegexpToken = '\\w+';
 var pnLiArray = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15'];
-var pnUrlPattern = /http:\/\/[^ \n]+[\w\/]/;
+var pnUrlPattern = /\w+:\/\/[^ \n]+[\w\/]/;
 var pnNumberPattern = new RegExp('\\' + pnStartDelimiter + '(' + pnLiRegexpToken + ')' + '\\' + pnEndDelimiter);
 var pnFootnotePattern = new RegExp('^\\s*' + pnNumberPattern.source + '\\s*' + '(' + pnUrlPattern.source + ')' + '\\s*$');
 
@@ -89,16 +89,14 @@ var piednote = {
     },
     
     //TODO: Undo functionality only works for footnotes but won't undo replaced links 
-    //TODO: Options: numeric / alphabetic, brackets / braces / parantheses / point
+    //TODO: Options: numeric / alphabetic, brackets / braces / parantheses / period
     //TODO: Menu item
-    //TODO: Description
     //TODO: Account for modifying options in the middle of editing
     //https://developer.mozilla.org/en/NsIEditor
     //http://xulplanet.mozdev.org/references/xpcomref/nsIPlaintextEditor.html
-    //Daca nu exista footnotes sa le faca unde e cursorul sau la sfarsit?
     parseText : function(editor, nodes, urlDict) {
         var node;
-        var numFootnotes = dictSize(urlDict); //FIX: A more elegant way to avoid the predefined nodes
+        var numFootnotes = dictSize(urlDict);
         var urlMatch;
         var n = nodes.length;
     
@@ -110,6 +108,9 @@ var piednote = {
             }
             else {
                 try {
+                    if (node.nodeValue.toString().substr(0, 1) == '>') { //This is a line from a reply, ignore it.
+                        continue;
+                    }
                     urlMatch = pnUrlPattern.exec(node.nodeValue.toString());
                     while(urlMatch.length) {
                         //alert(node.nodeName + ':' + node.nodeValue.toString() + ':' + urlMatch);
