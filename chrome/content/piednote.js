@@ -155,6 +155,7 @@ var piednote = {
                 piednoteParent = editor.document.createElement('span');
                 piednoteParent.id = 'piednoteParent';
                 editor.insertNode(piednoteParent, editor.rootElement, nodes.length - 1);
+                piednoteParent.appendChild(editor.document.createElement('br'));
             }
         }
         for (var i = 0; i < sorted.length; i++) {
@@ -168,8 +169,7 @@ var piednote = {
                     var node = editor.document.createTextNode('');
                     node.nodeValue = tmpFootno + ' ' + key;                   
                     piednoteParent.appendChild(node);
-                    node = editor.document.createElement('br');
-                    piednoteParent.appendChild(node);
+                    piednoteParent.appendChild(editor.document.createElement('br'));
                 } /*
                 else 
                     { 
