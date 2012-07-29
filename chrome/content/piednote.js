@@ -1,3 +1,5 @@
+//
+
 var pnStartDelimiter = '[';
 var pnEndDelimiter = ']';
 var pnLiRegexpToken = '\\w+';
