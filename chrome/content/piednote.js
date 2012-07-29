@@ -1,4 +1,3 @@
-//
 
 var pnStartDelimiter = '[';
 var pnEndDelimiter = ']';
